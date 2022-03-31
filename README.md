@@ -1,120 +1,99 @@
-**基于SpringBoot实现Java高并发之秒杀系统**
 
-**技术栈**
+     
+## 系统介绍
+本系统是使用SpringBoot开发的高并发限时抢购秒杀系统，除了实现基本的登录、查看商品列表、秒杀、下单等功能，项目中还针对高并发情况实现了系统缓存、降级和限流。
 
-* 后端： SpringBoot-2.x + Redis-4.x
+## 开发工具
+IntelliJ IDEA + Navicat + Sublime Text3 + Git + Chrome
 
-* 前端： Bootstrap + Jquery
-
-**测试环境**
-
-* IDEA + Maven-10.13 + Tomcat8 + JDK8
-
-**启动说明**
-
-* 启动前，请配置好 [application.yml](https://github.com/TyCoding/springboot-seckill/blob/master/src/main/resources/application.yml) 中连接数据库的用户名和密码，以及Redis服务器的地址和端口信息。
-
-* 启动前，请创建数据库`seckill`，建表SQL语句放在：[/db/sys_schema.sql](https://github.com/TyCoding/springboot-seckill/blob/master/db/sys_schema.sql)。具体的建表和建库语句请仔细看SQL文件。
-
-* 配置完成后，运行位于 `src/main/cn/tycoding/`下的SpringbootSeckillApplication中的main方法，访问 `http://localhost:8080/seckill/` 进行API测试。
-
-* 注意[/db/sys_data.sql](https://github.com/TyCoding/springboot-seckill/blob/master/db/sys_data.sql)中秒杀商品的日期可能要修改，自行修改为符合商品秒杀条件的时间即可。
-
-**写在前面**
-
-SpringBoot不是对Spring功能上的增强，而是提供了一种快速使用Spring的方式，所以本质上和SSM框架差别不大，所以学习此项目不仅可以学习到秒杀系统的设计流程还能很好的练习一下SpringBoot框架。当然如果你对SpringBoot框架不是很熟悉的话，我推荐你你看一下：
-
-* [SpringBoot入门之工程搭建（IDEA版）](http://tycoding.cn/2018/09/28/boot/spring-boot/)
-* [SpringBoot整合mybatis实现CRUD业务](http://tycoding.cn/2018/09/30/boot/springboot-mybatis/)
-
-欢迎star(#^.^#)
+## 压测工具
+JMeter
 
 
-**项目设计**
+## 开发技术
+前端技术 ：Bootstrap + jQuery + Thymeleaf
 
-```
-.
-├── README  -- Doc文档
-├── db  -- 数据库约束文件
-├── mvnw  
-├── mvnw.cmd
-├── pom.xml  -- 项目依赖
-└── src
-    ├── main
-    │   ├── java
-    │   │   └── cn
-    │   │       └── tycoding
-    │   │           ├── SpringbootSeckillApplication.java  -- SpringBoot启动器
-    │   │           ├── controller  -- MVC的web层
-    │   │           ├── dto  -- 统一封装的一些结果属性，和entity类似
-    │   │           ├── entity  -- 实体类
-    │   │           ├── enums  -- 手动定义的字典枚举参数
-    │   │           ├── exception  -- 统一的异常结果
-    │   │           ├── mapper  -- Mybatis-Mapper层映射接口，或称为DAO层
-    │   │           ├── redis  -- redis,jedis 相关配置
-    │   │           └── service  -- 业务层
-    │   └── resources
-    │       ├── application.yml  -- SpringBoot核心配置
-    │       ├── mapper  -- Mybatis-Mapper层XML映射文件
-    │       ├── static  -- 存放页面静态资源，可通过浏览器直接访问
-    │       │   ├── css
-    │       │   ├── js
-    │       │   └── lib
-    │       └── templates  -- 存放Thymeleaf模板引擎所需的HTML，不能在浏览器直接访问
-    │           ├── page
-    │           └── public  -- HTML页面公共组件（头部、尾部）
-    └── test  -- 测试文件
-```
+后端技术 ：SpringBoot + MyBatis + MySQL
+
+中间件技术 : Druid + Redis + RabbitMQ + Guava
+
+## 秒杀优化方向
+
+1. 将请求尽量拦截在系统上游：传统秒杀系统之所以挂，请求都压倒了后端数据层，数据读写锁冲突严重，几乎所有请求都超时，流量虽大，下单成功的有效流量甚小，我们可以通过限流、降级等措施来最大化减少对数据库的访问，从而保护系统。
+
+2. 充分利用缓存：秒杀商品是一个典型的读多写少的应用场景，充分利用缓存将大大提高并发量
+## 实现技术点
+### 1. 两次MD5加密
+
+将用户输入的密码和固定Salt通过MD5加密生成第一次加密后的密码，再讲该密码和随机生成的Salt通过MD5进行第二次加密，最后将第二次加密后的密码和第一次的固定Salt存数据库
+
+好处：    
+     
+1. 第一次作用：防止用户明文密码在网络进行传输
+2. 第二次作用：防止数据库被盗，避免通过MD5反推出密码，双重保险
+
+### 2. session共享
+验证用户账号密码都正确情况下，通过UUID生成唯一id作为token，再将token作为key、用户信息作为value模拟session存储到redis，同时将token存储到cookie，保存登录状态
+
+好处： 在分布式集群情况下，服务器间需要同步，定时同步各个服务器的session信息，会因为延迟到导致session不一致，使用redis把session数据集中存储起来，解决session不一致问题。
+
+### 3. JSR303自定义参数验证
+使用JSR303自定义校验器，实现对用户账号、密码的验证，使得验证逻辑从业务代码中脱离出来。
+
+### 4. 全局异常统一处理
+通过拦截所有异常，对各种异常进行相应的处理，当遇到异常就逐层上抛，一直抛到最终由一个统一的、专门负责异常处理的地方处理，这有利于对异常的维护。
+
+### 5. 页面缓存 + 对象缓存
+1. 页面缓存：通过在手动渲染得到的html页面缓存到redis
+2. 对象缓存：包括对用户信息、商品信息、订单信息和token等数据进行缓存，利用缓存来减少对数据库的访问，大大加快查询速度。
+
+### 6. 页面静态化
+对商品详情和订单详情进行页面静态化处理，页面是存在html，动态数据是通过接口从服务端获取，实现前后端分离，静态页面无需连接数据库打开速度较动态页面会有明显提高
+
+### 7. 本地标记 + redis预处理 + RabbitMQ异步下单 + 客户端轮询
+描述：通过三级缓冲保护，1、本地标记  2、redis预处理  3、RabbitMQ异步下单，最后才会访问数据库，这样做是为了最大力度减少对数据库的访问。
+
+实现：
+
+1. 在秒杀阶段使用本地标记对用户秒杀过的商品做标记，若被标记过直接返回重复秒杀，未被标记才查询redis，通过本地标记来减少对redis的访问
+2. 抢购开始前，将商品和库存数据同步到redis中，所有的抢购操作都在redis中进行处理，通过Redis预减少库存减少数据库访问
+3. 为了保护系统不受高流量的冲击而导致系统崩溃的问题，使用RabbitMQ用异步队列处理下单，实际做了一层缓冲保护，做了一个窗口模型，窗口模型会实时的刷新用户秒杀的状态。
+4. client端用js轮询一个接口，用来获取处理状态
+
+### 8. 解决超卖
+描述：比如某商品的库存为1，此时用户1和用户2并发购买该商品，用户1提交订单后该商品的库存被修改为0，而此时用户2并不知道的情况下提交订单，该商品的库存再次被修改为-1，这就是超卖现象
+
+实现：
+
+1. 对库存更新时，先对库存判断，只有当库存大于0才能更新库存
+2. 对用户id和商品id建立一个唯一索引，通过这种约束避免同一用户发同时两个请求秒杀到两件相同商品
+3. 实现乐观锁，给商品信息表增加一个version字段，为每一条数据加上版本。每次更新的时候version+1，并且更新时候带上版本号，当提交前版本号等于更新前版本号，说明此时没有被其他线程影响到，正常更新，如果冲突了则不会进行提交更新。当库存是足够的情况下发生乐观锁冲突就进行一定次数的重试。
+
+### 9. 使用数学公式验证码
+描述：点击秒杀前，先让用户输入数学公式验证码，验证正确才能进行秒杀。
+
+好处：
+1. 防止恶意的机器人和爬虫 
+2. 分散用户的请求
+
+实现：
+1. 前端通过把商品id作为参数调用服务端创建验证码接口
+2. 服务端根据前端传过来的商品id和用户id生成验证码，并将商品id+用户id作为key，生成的验证码作为value存入redis，同时将生成的验证码输入图片写入imageIO让前端展示
+3. 将用户输入的验证码与根据商品id+用户id从redis查询到的验证码对比，相同就返回验证成功，进入秒杀；不同或从redis查询的验证码为空都返回验证失败，刷新验证码重试
+
+### 10. 使用RateLimiter实现限流
+描述：当我们去秒杀一些商品时，此时可能会因为访问量太大而导致系统崩溃，此时要使用限流来进行限制访问量，当达到限流阀值，后续请求会被降级；降级后的处理方案可以是：返回排队页面（高峰期访问太频繁，等一会重试）、错误页等。
+
+实现：项目使用RateLimiter来实现限流，RateLimiter是guava提供的基于令牌桶算法的限流实现类，通过调整生成token的速率来限制用户频繁访问秒杀页面，从而达到防止超大流量冲垮系统。（令牌桶算法的原理是系统会以一个恒定的速度往桶里放入令牌，而如果请求需要被处理，则需要先从桶里获取一个令牌，当桶里没有令牌可取时，则拒绝服务）
 
 
 
-## Doc
+## 压测效果
+优化前 ：开启1000个线程循环10次同时访问，QPS = 423 
+![优化前](https://github.com/zaiyunduan123/jesper_seckill/blob/master/src/main/resources/static/img/stress-test/goodsList_test_3.png)
+优化后：QPS = 2501
+![优化后](https://github.com/zaiyunduan123/jesper_seckill/blob/master/src/main/resources/static/img/stress-test/optimised_goodslist.png)
 
-本项目一共分为四个模块来讲解，具体的开发教程请看我的博客文章：
+-----
 
-* [SpringBoot实现Java高并发秒杀系统之DAO层开发（一）](http://tycoding.cn/2018/10/12/ssm/seckill-dao/)
-
-* [SpringBoot实现Java高并发秒杀系统之Service层开发（二）](http://tycoding.cn/2018/10/13/ssm/seckill-service/)
-
-* [SpringBoot实现Java高并发秒杀系统之Web层开发（三）](http://tycoding.cn/2018/10/14/ssm/seckill-web/)
-
-* [SpringBoot实现Java高并发秒杀系统之并发优化（四）](http://tycoding.cn/2018/10/15/ssm/seckill/)
-
-更多文档将在我的公众号 **程序员涂陌** 中陆续发布，请持续关注！
-
-| 程序员涂陌                                                  |
-| ----------------------------------------------------------- |
-| ![qrcode_for_gh](http://cdn.tycoding.cn/20200610184737.jpg) |
-
-## 捐赠
-
-| Alipay                                                     | WechatPay                                                  |
-| ---------------------------------------------------------- | ---------------------------------------------------------- |
-| ![alipay_258px](http://cdn.tycoding.cn/20200610132929.png) | ![wechat_258px](http://cdn.tycoding.cn/20200610132940.png) |
-
-
-<br/>
-
-# Preview
-
-![](README/show-1.png)
-
-![](README/show-2.png)
-
-![](README/show-3.png)
-
-<br/>
-
-# 交流
-
-如果大家有兴趣，欢迎大家加入我的Java交流群：671017003 ，一起交流学习Java技术。博主目前一直在自学JAVA中，技术有限，如果可以，会尽力给大家提供一些帮助，或是一些学习方法，当然群里的大佬都会积极给新手答疑的。所以，别犹豫，快来加入我们吧！
-
-<br/>
-
-# 联系
-
-If you have some questions after you see this article, you can contact me or you can find some info by clicking these links.
-
-- [Blog@TyCoding's blog](http://www.tycoding.cn)
-- [GitHub@TyCoding](https://github.com/TyCoding)
-- [ZhiHu@TyCoding](https://www.zhihu.com/people/tomo-83-82/activities)
+本项目是学习了imooc网视频之后的个人理解和知识汇总，学习链接：https://coding.imooc.com/class/168.html
