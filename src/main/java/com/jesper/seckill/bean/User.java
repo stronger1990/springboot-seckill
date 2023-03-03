@@ -9,7 +9,7 @@ public class User {
 	private Long id;
 	private String nickname;
 	private String password;
-	private String salt;
+	private String salt; // 用于加密的随机校验码
 	private String head;
 	private Date registerDate;
 	private Date lastLoginDate;

@@ -11,6 +11,8 @@ import java.util.List;
  * Created by jiangyunxiong on 2018/5/22.
  *
  * 自定参数解析器, 作用：改变SpringMVC的Controller传入参数，实现可以User替换Token做为参数从登陆页面传到商品列表页面
+ *
+ * 这个类是除了MainApplication外最早执行的，配置文件，当前配置了：你访问的接口，其接口参数要放入UserArgumentResolver进行处理
  */
 @Configuration
 public class WebConfig extends WebMvcConfigurerAdapter{

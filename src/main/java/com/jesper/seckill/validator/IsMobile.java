@@ -14,9 +14,7 @@ import java.lang.annotation.*;
 @Documented
 @Constraint(validatedBy = { IsMobileValidator.class }) // 引进校验器
 public @interface IsMobile {
-
 	// 下面的参数可以理解成提供给IsMobileValidator.class使用的变量
-	
 	boolean required() default true;// 默认不能为空
 
 	String message() default "手机号码格式错误";// 校验不通过输出信息

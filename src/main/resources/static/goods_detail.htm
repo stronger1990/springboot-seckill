@@ -1,12 +1,12 @@
 <!DOCTYPE HTML>
-<html >
+<html>
 <head>
     <title>商品详情</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <!-- jquery -->
     <script type="text/javascript" src="/js/jquery.min.js"></script>
     <!-- bootstrap -->
-    <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css"/>
     <script type="text/javascript" src="/bootstrap/js/bootstrap.min.js"></script>
     <!-- jquery-validator -->
     <script type="text/javascript" src="/jquery-validation/jquery.validate.min.js"></script>
@@ -32,18 +32,19 @@
         </tr>
         <tr>
             <td>商品图片</td>
-            <td colspan="3"><img  id="goodsImg" width="200" height="200" /></td>
+            <td colspan="3"><img id="goodsImg" width="200" height="200"/></td>
         </tr>
         <tr>
             <td>秒杀开始时间</td>
             <td id="startTime"></td>
-            <td >
-                <input type="hidden" id="remainSeconds" />
+            <td>
+                <input type="hidden" id="remainSeconds"/>
                 <span id="seckillTip"></span>
             </td>
             <td>
-                <button class="btn btn-primary btn-block" type="button" id="buyButton" onclick="doSeckill()">立即秒杀</button>
-                <input type="hidden" name="goodsId"  id="goodsId" />
+                <button class="btn btn-primary btn-block" type="button" id="buyButton" onclick="doSeckill()">立即秒杀
+                </button>
+                <input type="hidden" name="goodsId" id="goodsId"/>
             </td>
         </tr>
         <tr>
@@ -52,51 +53,52 @@
         </tr>
         <tr>
             <td>秒杀价</td>
-            <td colspan="3"  id="seckillPrice"></td>
+            <td colspan="3" id="seckillPrice"></td>
         </tr>
         <tr>
             <td>库存数量</td>
-            <td colspan="3"  id="stockCount"></td>
+            <td colspan="3" id="stockCount"></td>
         </tr>
     </table>
 </div>
 </body>
 <script>
-    function getSeckillResult(goodsId){
+    function getSeckillResult(goodsId) {
         g_showLoading();
         $.ajax({
-            url:"/seckill/result",
-            type:"GET",
-            data:{
-                goodsId:$("#goodsId").val(),
+            url: "/seckill/result",
+            type: "GET",
+            data: {
+                goodsId: $("#goodsId").val(),
             },
-            success:function(data){
-                if(data.code == 0){
+            success: function (data) {
+                if (data.code == 0) {
                     var result = data.data;
-                    if(result < 0){
+                    if (result < 0) {
                         layer.msg("对不起，秒杀失败");
-                    }else if(result == 0){//继续轮询
-                        setTimeout(function(){
+                    } else if (result == 0) {//继续轮询
+                        setTimeout(function () {
                             getSeckillResult(goodsId);
                         }, 50);
-                    }else{
-                        layer.confirm("恭喜你，秒杀成功！查看订单？", {btn:["确定","取消"]},
-                            function(){
-                                window.location.href="/order_detail.htm?orderId="+result;
+                    } else {
+                        layer.confirm("恭喜你，秒杀成功！查看订单？", {btn: ["确定", "取消"]},
+                            function () {
+                                window.location.href = "/order_detail.htm?orderId=" + result;
                             },
-                            function(){
+                            function () {
                                 layer.closeAll();
                             });
                     }
-                }else{
+                } else {
                     layer.msg(data.msg);
                 }
             },
-            error:function(){
+            error: function () {
                 layer.msg("客户端请求有误");
             }
         });
     }
+
     function doSeckill() {
         $.ajax({
             url: "/seckill/do_seckill",
@@ -107,6 +109,7 @@
             success: function (data) {
                 if (data.code == 0) {
 //                    window.location.href = "/order_detail.htm?orderId=" + data.data.id;
+                    // 应该是执行上面而不是下面才对，因为秒杀成功就可以保证有订单了，因为订单是通过rabbitmq排队处理的，这么快就查有没有订单，不一定能这么快就能查出来，而这里却马上调接口了。
                     getSeckillResult($("#goodsId").val());
                 } else {
                     layer.msg(data.msg);
@@ -135,11 +138,6 @@
         $("#seckillPrice").text(goods.seckillPrice);
         $("#stockCount").text(goods.stockCount);
     }
-
-    $(function () {
-        countDown();
-        getDetail();
-    });
 
     function getDetail() {
         var goodsId = g_getQueryString("goodsId");
@@ -183,5 +181,9 @@
         }
     }
 
+    $(function () {
+        countDown();
+        getDetail();
+    });
 </script>
 </html>

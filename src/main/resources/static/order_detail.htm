@@ -43,7 +43,7 @@
             <td id="orderStatus">
             </td>
             <td>
-                <button class="btn btn-primary btn-block" type="submit" id="payButton">立即支付</button>
+                <button class="btn btn-primary btn-block" type="submit" id="payButton" onclick="payRightNow()">立即支付</button>
             </td>
         </tr>
         <tr>
@@ -59,6 +59,10 @@
 </body>
 </html>
 <script>
+
+    function payRightNow() {
+        alert("到此结束")
+    }
     function render(detail){
         var goods = detail.goods;
         var order = detail.order;
@@ -74,10 +78,6 @@
         }
         $("#orderStatus").text(status);
     }
-
-    $(function(){
-        getOrderDetail();
-    })
 
     function getOrderDetail(){
         var orderId = g_getQueryString("orderId");
@@ -99,4 +99,8 @@
             }
         });
     }
+
+    $(function(){
+        getOrderDetail();
+    })
 </script>

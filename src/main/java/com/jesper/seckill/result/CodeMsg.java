@@ -1,7 +1,6 @@
 package com.jesper.seckill.result;
 
 public class CodeMsg {
-
     private int code;
     private String msg;
 
@@ -67,6 +66,4 @@ public class CodeMsg {
     public String toString() {
         return "CodeMsg [code=" + code + ", msg=" + msg + "]";
     }
-
-
 }

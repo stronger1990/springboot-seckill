@@ -25,6 +25,15 @@ public class UserArgumentResolver implements HandlerMethodArgumentResolver {
     UserService userService;
 
     /**
+     * 访问接口，分三种，
+     * 1、实际传入参数(即真正要客户端提供的参数)，
+     * 比如LoginController的doLogin接口，参数LoginVo里的参数就是接纳客户端的参数
+     * 2、不想在函数内创建实例，而是在参数里实例化空model，然后再在函数内一一实例化，然后用于渲染下个页面上用
+     * 比如GoodsController里的list接口，参数Model
+     * 3、接口本身也写了输入参数，没有具体实例化的地方，但是函数内直接使用，而且有内容，肯定是在外部哪实例化过了，能在哪呢，只有一个地方就是这里。
+     * 比如GoodsController里的list接口，参数User。
+     *
+     * 这里判断参数如果是User，就进行resolveArgument处理，实例化User
      * 当参数类型为User才做处理
      *
      * @param methodParameter
@@ -45,12 +54,16 @@ public class UserArgumentResolver implements HandlerMethodArgumentResolver {
         HttpServletRequest request = nativeWebRequest.getNativeRequest(HttpServletRequest.class);
         HttpServletResponse response = nativeWebRequest.getNativeResponse(HttpServletResponse.class);
 
-        String paramToken = request.getParameter(UserService.COOKIE_NAME_TOKEN);
+        // 登录成功后，保存了部分数据到cookie里了
         String cookieToken = getCookieValue(request, UserService.COOKIE_NAME_TOKEN);
+        // 访问接口，除了登录接口外都要携带token，如果request没有token，则访问不合法
+        String paramToken = request.getParameter(UserService.COOKIE_NAME_TOKEN);
         if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
             return null;
         }
+        // 浏览器登录有cookieToken，APP登录有paramToken，哪个有就用哪个
         String token = StringUtils.isEmpty(paramToken) ? cookieToken : paramToken;
+        // 返回的实例，就是supportsParameter支持的model，在访问接口时，先进入此处配置，实例化User后才进入接口内部业务逻辑处理
         return userService.getByToken(response, token);
     }
 

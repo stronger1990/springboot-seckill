@@ -23,13 +23,10 @@ public class MQReceiver {
 
     @Autowired
     RedisService redisService;
-
     @Autowired
     GoodsService goodsService;
-
     @Autowired
     OrderService orderService;
-
     @Autowired
     SeckillService seckillService;
 

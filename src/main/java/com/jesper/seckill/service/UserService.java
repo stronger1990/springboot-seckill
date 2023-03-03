@@ -31,7 +31,7 @@ public class UserService {
     public static final String COOKIE_NAME_TOKEN = "token";
 
     /**
-     * 手机号
+     * 根据手机号查找用户信息，先查Redis是否有，没有则查数据库，然后将数据库的用户信息保存到Redis，节省数据库资源，毕竟数据库不是随时读写，是有锁的
      * @param id
      * @return
      */
@@ -75,7 +75,9 @@ public class UserService {
         if (loginVo == null) {
             throw new GlobalException(CodeMsg.SERVER_ERROR);
         }
+        // 用户登录输入的手机号
         String mobile = loginVo.getMobile();
+        // 用户登录输入的密码，经过客户端固定salt md5的加密得到的一串字符串
         String formPass = loginVo.getPassword();
         //判断手机号是否存在
         User user = getById(Long.parseLong(mobile));
@@ -85,12 +87,19 @@ public class UserService {
         //验证密码
         String dbPass = user.getPassword();
         String saltDB = user.getSalt();
+        // 注册的时候，会将客户端密码A经过MD5加密成密码B，再随机生成一个salt保存到数据库并用其再次加密密码B得到密码C，最终保存到数据库
+        // 所以登录的时候要这样校验密码
         String calcPass = MD5Util.formPassToDBPass(formPass, saltDB);
         if (!calcPass.equals(dbPass)) {
             throw new GlobalException(CodeMsg.PASSWORD_ERROR);
         }
         //生成唯一id作为token
         String token = UUIDUtil.uuid();
+        // 上面getById已经保存id:phone - UserModel到Redis了，还addCookie干啥呢？
+        // 有两个作用，
+        // 1、addCookie里面有保存token:token - UserModel，方便token直接校验合法性访问各大其它接口，而getById只是保存了登录校验。
+        // 2、将token保存到Cookie，这个只适用于浏览器，如果是APP，不需要保存token到Cookie，只需要访问其它接口时头参数带token即可。
+        // 而浏览器访问接口，从Cookie拿token访问接口更方便
         addCookie(response, token, user);
         return token;
     }

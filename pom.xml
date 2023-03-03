@@ -10,7 +10,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>1.5.8.RELEASE</version>
+		<version>1.5.14.RELEASE</version>
 	</parent>
 
 	<name>jesper_seckill</name>
@@ -54,7 +54,6 @@
 			<artifactId>druid</artifactId>
 			<version>1.0.5</version>
 		</dependency>
-
 		<dependency>
 			<groupId>redis.clients</groupId>
 			<artifactId>jedis</artifactId>

@@ -24,41 +24,40 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequestMapping("/order")
 public class OrderController {
 
-	@Autowired
-	UserService userService;
+    @Autowired
+    UserService userService;
 
-	@Autowired
-	RedisService redisService;
+    @Autowired
+    RedisService redisService;
 
-	@Autowired
-	OrderService orderService;
+    @Autowired
+    OrderService orderService;
 
-	@Autowired
-	GoodsService goodsService;
+    @Autowired
+    GoodsService goodsService;
 
-	/**
-	 * 
-	 * @param model 这不是请求体传入的参数，应该是从session中取到的
-	 * @param user 
-	 * @param orderId 这个是Get输入参数，一般get不应该把参数放入请求体的，而应该放在url才对
-	 * @return
-	 */
-	@RequestMapping("/detail")
-	@ResponseBody
-	public Result<OrderDetailVo> info(Model model, User user, @RequestParam("orderId") long orderId) {
-		if (user == null) {
-			return Result.error(CodeMsg.SESSION_ERROR);
-		}
-		OrderInfo order = orderService.getOrderById(orderId);
-		if (order == null) {
-			return Result.error(CodeMsg.ORDER_NOT_EXIST);
-		}
-		long goodsId = order.getGoodsId();
-		GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
-		OrderDetailVo vo = new OrderDetailVo();
-		vo.setOrder(order);
-		vo.setGoods(goods);
-		return Result.success(vo);
-	}
+    /**
+     * @param model   这不是请求体传入的参数，应该是从session中取到的
+     * @param user
+     * @param orderId 这个是Get输入参数，一般get不应该把参数放入请求体的，而应该放在url才对
+     * @return
+     */
+    @RequestMapping("/detail")
+    @ResponseBody
+    public Result<OrderDetailVo> info(Model model, User user, @RequestParam("orderId") long orderId) {
+        if (user == null) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
+        OrderInfo order = orderService.getOrderById(orderId);
+        if (order == null) {
+            return Result.error(CodeMsg.ORDER_NOT_EXIST);
+        }
+        long goodsId = order.getGoodsId();
+        GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
+        OrderDetailVo vo = new OrderDetailVo();
+        vo.setOrder(order);
+        vo.setGoods(goods);
+        return Result.success(vo);
+    }
 
 }

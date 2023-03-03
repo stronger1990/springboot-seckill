@@ -51,7 +51,7 @@ public class SeckillController implements InitializingBean {
 	// 基于令牌桶算法的限流实现类
 	RateLimiter rateLimiter = RateLimiter.create(10);
 
-	// 做标记，判断该商品是否被处理过了
+	// 做标记，判断该商品是否被秒杀过了
 	private HashMap<Long, Boolean> localOverMap = new HashMap<Long, Boolean>();
 	
 	/**
@@ -97,25 +97,29 @@ public class SeckillController implements InitializingBean {
 		if (over) {
 			return Result.error(CodeMsg.SECKILL_OVER);
 		}
-		// 预减库存
+		// 获取库存，减1，得到新的库存数
 		long stock = redisService.decr(GoodsKey.getGoodsStock, "" + goodsId);// 10
 		if (stock < 0) {
+			// 库存没了？可能数据有问题，刷新一下再试
 			afterPropertiesSet();
 			long stock2 = redisService.decr(GoodsKey.getGoodsStock, "" + goodsId);// 10
 			if (stock2 < 0) {
+				// 库存确实为0了。不然也不会减1小于0，赶紧设置该商品已经被秒杀了
 				localOverMap.put(goodsId, true);
 				return Result.error(CodeMsg.SECKILL_OVER);
 			}
 		}
-		// 判断重复秒杀
+		// 判断重复秒杀，同一个用户只能秒杀一次
 		SeckillOrder order = orderService.getOrderByUserIdGoodsId(user.getId(), goodsId);
 		if (order != null) {
 			return Result.error(CodeMsg.REPEATE_SECKILL);
 		}
-		// 入队
+		// 入队，先放在mrabbitmq先进先出队列等待处理，不要秒杀成功马上就进行下一步操作，因为秒杀才是最重要的，秒杀完成后，剩下就是订单的刷新和配送等，这个不需要实时处理，放在队列慢慢处理就可以了。
+		// 不要堵塞，赶紧告诉客户端秒杀成功了。
 		SeckillMessage message = new SeckillMessage();
 		message.setUser(user);
 		message.setGoodsId(goodsId);
+		// com.jesper.seckill.rabbitmq.MQReceiver将接受处理，最终会调OrderService的createOrder创建订单
 		sender.sendSeckillMessage(message);
 		return Result.success(0);// 排队中
 	}

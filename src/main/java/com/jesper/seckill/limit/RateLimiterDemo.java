@@ -14,11 +14,11 @@ public class RateLimiterDemo {
     public static void main(String[] args) {
         RateLimiter rateLimiter = RateLimiter.create(2);
         List<Runnable> tasks = new ArrayList<Runnable>();
-        for(int i = 0;i < 10; i++){
+        for (int i = 0; i < 10; i++) {
             tasks.add(new UserRequest(i));
         }
         ExecutorService threadPool = Executors.newCachedThreadPool();
-        for (Runnable runnable : tasks){
+        for (Runnable runnable : tasks) {
             System.out.println("等待时间：" + rateLimiter.acquire());
             threadPool.execute(runnable);
         }

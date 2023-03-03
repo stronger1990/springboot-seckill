@@ -62,6 +62,7 @@ public class GoodsController {
 			return html;
 		}
 		List<GoodsVo> goodsList = goodsService.listGoodsVo();
+		// 调试中断发现user是有实例的，为啥从controller看不到User曾经实例化？？？是的，在进入接口内部逻辑处理前被WebConfig拦截并对参数进行实例化了
 		model.addAttribute("user", user);
 		model.addAttribute("goodsList", goodsList);
 
@@ -74,6 +75,43 @@ public class GoodsController {
 		}
 		// 结果输出
 		return html;
+	}
+
+	/**
+	 * 商品详情页面
+	 */
+	@RequestMapping(value = "/detail/{goodsId}")
+	@ResponseBody
+	public Result<GoodsDetailVo> detail(HttpServletRequest request, HttpServletResponse response, Model model, User user, @PathVariable("goodsId") long goodsId) {
+
+		// 根据id查询商品详情
+		GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
+		model.addAttribute("goods", goods);
+
+		long startTime = goods.getStartDate().getTime();
+		long endTime = goods.getEndDate().getTime();
+		long now = System.currentTimeMillis();
+
+		int seckillStatus = 0;
+		int remainSeconds = 0;
+
+		if (now < startTime) {// 秒杀还没开始，倒计时
+			seckillStatus = 0;
+			remainSeconds = (int) ((startTime - now) / 1000);
+		} else if (now > endTime) {// 秒杀已经结束
+			seckillStatus = 2;
+			remainSeconds = -1;
+		} else {// 秒杀进行中
+			seckillStatus = 1;
+			remainSeconds = 0;
+		}
+		GoodsDetailVo vo = new GoodsDetailVo();
+		vo.setGoods(goods);
+		vo.setUser(user);
+		vo.setRemainSeconds(remainSeconds);
+		vo.setSeckillStatus(seckillStatus);
+
+		return Result.success(vo);
 	}
 
 	/**
@@ -121,42 +159,5 @@ public class GoodsController {
 			redisService.set(GoodsKey.getGoodsDetail, "" + goodsId, html);
 		}
 		return html;
-	}
-
-	/**
-	 * 商品详情页面
-	 */
-	@RequestMapping(value = "/detail/{goodsId}")
-	@ResponseBody
-	public Result<GoodsDetailVo> detail(HttpServletRequest request, HttpServletResponse response, Model model, User user, @PathVariable("goodsId") long goodsId) {
-
-		// 根据id查询商品详情
-		GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
-		model.addAttribute("goods", goods);
-
-		long startTime = goods.getStartDate().getTime();
-		long endTime = goods.getEndDate().getTime();
-		long now = System.currentTimeMillis();
-
-		int seckillStatus = 0;
-		int remainSeconds = 0;
-
-		if (now < startTime) {// 秒杀还没开始，倒计时
-			seckillStatus = 0;
-			remainSeconds = (int) ((startTime - now) / 1000);
-		} else if (now > endTime) {// 秒杀已经结束
-			seckillStatus = 2;
-			remainSeconds = -1;
-		} else {// 秒杀进行中
-			seckillStatus = 1;
-			remainSeconds = 0;
-		}
-		GoodsDetailVo vo = new GoodsDetailVo();
-		vo.setGoods(goods);
-		vo.setUser(user);
-		vo.setRemainSeconds(remainSeconds);
-		vo.setSeckillStatus(seckillStatus);
-
-		return Result.success(vo);
 	}
 }
